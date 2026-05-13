@@ -1,6 +1,7 @@
 import { getServerSupabaseForData } from "@/lib/supabase/data-client";
 import { getStageTitle } from "@/lib/construction-stages";
 import AddClientForm from "./AddClientForm";
+import ClientStageForm from "./ClientStageForm";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export default async function AdminClientsPage() {
                     Менеджер: {c.manager_name}
                   </p>
                 )}
+                <ClientStageForm clientId={c.id} currentStage={c.current_stage} />
               </li>
             ))}
           </ul>

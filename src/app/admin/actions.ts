@@ -10,6 +10,11 @@ export type AddClientState = {
   success?: boolean;
 };
 
+export type UpdateClientStageState = {
+  error?: string;
+  success?: boolean;
+};
+
 export async function addClientAction(
   _prev: AddClientState,
   formData: FormData
@@ -74,5 +79,50 @@ export async function addClientAction(
   }
 
   revalidatePath("/admin/clients");
+  return { success: true };
+}
+
+export async function updateClientStageAction(
+  _prev: UpdateClientStageState,
+  formData: FormData
+): Promise<UpdateClientStageState> {
+  const clientId = (formData.get("client_id") as string | null)?.trim() ?? "";
+  const rawStage = Number(formData.get("current_stage") ?? 1);
+  const current_stage =
+    Number.isInteger(rawStage) && rawStage >= 1 && rawStage <= 8 ? rawStage : NaN;
+
+  if (!clientId) {
+    return { error: "Клиент не найден." };
+  }
+  if (Number.isNaN(current_stage)) {
+    return { error: "Выберите корректный этап от 1 до 8." };
+  }
+
+  const supabase = createServiceRoleSupabaseClient();
+  if (!supabase) {
+    console.error(
+      "[updateClientStage] SUPABASE_SERVICE_ROLE_KEY не задан. " +
+        "Обновление clients.current_stage невозможно при включённом RLS."
+    );
+    return {
+      error:
+        "Сервер не настроен: добавьте SUPABASE_SERVICE_ROLE_KEY в .env.local.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("clients")
+    .update({ current_stage })
+    .eq("id", clientId);
+
+  if (error) {
+    logSupabaseError("updateClientStage update", error);
+    return {
+      error: `Не удалось обновить этап (${error.code ?? "unknown"}).`,
+    };
+  }
+
+  revalidatePath("/admin/clients");
+  revalidatePath("/cabinet");
   return { success: true };
 }
